@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>COSMOS — Grupo 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:ital,wght@0,100;0,300;0,600;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00e5ff;--gold:#ffd060;--white:#e8f0ff;--red:#ff4455;
+  --glow-cyan:0 0 20px #00e5ff88,0 0 60px #00e5ff33;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#00000a;font-family:'Exo 2',sans-serif;color:var(--white);cursor:none}
+
+/* CURSOR */
+#cursor{position:fixed;width:12px;height:12px;border:1px solid var(--cyan);border-radius:50%;pointer-events:none;z-index:9999;transition:transform .1s;mix-blend-mode:screen}
+#cursor-trail{position:fixed;width:4px;height:4px;background:var(--cyan);border-radius:50%;pointer-events:none;z-index:9998;opacity:.5}
+
+/* CANVAS */
+#starfield{position:fixed;inset:0;z-index:0}
+
+/* NEBULA */
+.nebula{
+  position:fixed;inset:0;z-index:1;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 50%,rgba(20,0,60,.7) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 20%,rgba(0,30,80,.5) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 60% 80%,rgba(40,0,30,.6) 0%,transparent 50%);
+}
+
+/* SCANLINES */
+.scanlines{position:fixed;inset:0;z-index:100;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);
+  animation:flicker 8s infinite}
+@keyframes flicker{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.97}94%{opacity:1}}
+
+/* SOLAR SYSTEM */
+#solar{position:fixed;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;transition:transform .1s ease-out}
+
+.sun-wrap{position:relative;width:100px;height:100px;display:flex;align-items:center;justify-content:center}
+.sun{
+  width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle at 38% 35%,#fff8d0 0%,#ffe060 20%,#ff9900 55%,#cc4400 80%,#991100);
+  box-shadow:0 0 60px #ffcc00,0 0 120px #ff880099,0 0 250px #ff440044,0 0 500px #ff220011;
+  animation:sunBreath 5s ease-in-out infinite;
+  position:relative;z-index:3
+}
+.sun-corona{
+  position:absolute;inset:-30px;border-radius:50%;
+  background:radial-gradient(circle,transparent 40%,rgba(255,200,0,.08) 60%,transparent 80%);
+  animation:coronaSpin 20s linear infinite
+}
+@keyframes sunBreath{0%,100%{transform:scale(1);box-shadow:0 0 60px #ffcc00,0 0 120px #ff880099,0 0 250px #ff440044}50%{transform:scale(1.06);box-shadow:0 0 80px #ffee44,0 0 160px #ffaa00bb,0 0 350px #ff660066}}
+@keyframes coronaSpin{to{transform:rotate(360deg)}}
+
+/* Orbits */
+.orbit{
+  position:absolute;border-radius:50%;
+  border:1px solid rgba(255,255,255,.06);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+}
+
+/* Planet carriers */
+.p-carrier{
+  position:absolute;top:50%;transform-origin:0 0;
+  animation:orb linear infinite;
+}
+@keyframes orb{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.planet-inner{
+  animation:counterOrb linear infinite;
+}
+@keyframes counterOrb{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+
+.planet{border-radius:50%;position:relative;cursor:pointer;transition:filter .3s}
+.planet:hover{filter:brightness(1.5) drop-shadow(0 0 12px var(--cyan))}
+.planet-glow{
+  position:absolute;inset:-60%;border-radius:50%;
+  opacity:.35;filter:blur(8px);
+  pointer-events:none;z-index:-1
+}
+
+/* Mercury */
+.o-mercury{width:160px;height:160px}
+.c-mercury{left:80px;margin-top:-6px;animation-duration:5.5s}
+.c-mercury .planet-inner{animation-duration:5.5s}
+.mercury{width:12px;height:12px;background:radial-gradient(circle at 40% 35%,#d0c0b0,#888070 60%,#554030)}
+
+/* Venus */
+.o-venus{width:240px;height:240px}
+.c-venus{left:120px;margin-top:-10px;animation-duration:9s}
+.c-venus .planet-inner{animation-duration:9s}
+.venus{width:20px;height:20px;background:radial-gradient(circle at 38% 35%,#fff0c0,#e0b840 50%,#c08020)}
+.venus .planet-glow{background:#e0b840}
+
+/* Earth */
+.o-earth{width:340px;height:340px}
+.c-earth{left:170px;margin-top:-13px;animation-duration:16s}
+.c-earth .planet-inner{animation-duration:16s}
+.earth{width:26px;height:26px;
+  background:radial-gradient(circle at 38% 35%,#88ddff,#1166cc 45%,#115522 70%,#1166cc);
+  box-shadow:0 0 12px #4488ff66}
+.earth .planet-glow{background:#4488ff}
+.moon-orbit{position:absolute;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.1);top:50%;left:50%;transform:translate(-50%,-50%);animation:orb 3s linear infinite}
+.moon{position:absolute;width:6px;height:6px;background:radial-gradient(circle,#ddd,#888);border-radius:50%;top:-3px;left:50%;transform:translateX(-50%)}
+
+/* Mars */
+.o-mars{width:450px;height:450px}
+.c-mars{left:225px;margin-top:-11px;animation-duration:25s}
+.c-mars .planet-inner{animation-duration:25s}
+.mars{width:22px;height:22px;background:radial-gradient(circle at 38% 35%,#ff9966,#cc3311 60%,#881100)}
+.mars .planet-glow{background:#cc3311}
+
+/* Asteroid belt */
+.asteroid-belt{
+  position:absolute;top:50%;left:50%;
+  width:570px;height:570px;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  background:
+    radial-gradient(ellipse at center,
+      transparent 44%,
+      rgba(180,160,130,.06) 46%,
+      rgba(180,160,130,.13) 50%,
+      rgba(180,160,130,.06) 54%,
+      transparent 56%);
+  pointer-events:none;
+  animation:orb 60s linear infinite
+}
+
+/* Jupiter */
+.o-jupiter{width:680px;height:680px}
+.c-jupiter{left:340px;margin-top:-30px;animation-duration:50s}
+.c-jupiter .planet-inner{animation-duration:50s}
+.jupiter{
+  width:60px;height:60px;
+  background:repeating-linear-gradient(180deg,#d4a96e 0,#d4a96e 5px,#c87040 5px,#c87040 9px,#e0c090 9px,#e0c090 13px,#b86040 13px,#b86040 17px);
+  border-radius:50%;
+  box-shadow:0 0 20px rgba(200,160,80,.3);
+  overflow:hidden;position:relative
+}
+.jupiter::after{content:'';position:absolute;width:18px;height:10px;background:rgba(200,80,60,.4);border-radius:50%;top:38%;left:25%;filter:blur(2px)}
+.jupiter .planet-glow{background:#c89060}
+
+/* Saturn */
+.o-saturn{width:880px;height:880px}
+.c-saturn{left:440px;margin-top:-28px;animation-duration:85s}
+.c-saturn .planet-inner{animation-duration:85s}
+.saturn-wrap{width:56px;height:56px;position:relative}
+.saturn{
+  width:56px;height:56px;
+  background:radial-gradient(circle at 40% 38%,#f8e8c0,#d4c080 50%,#a09040);
+  border-radius:50%;
+  box-shadow:0 0 16px rgba(220,200,80,.25)
+}
+.saturn-rings{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotateX(72deg);
+  width:100px;height:100px;border-radius:50%;
+  border:6px solid rgba(210,190,110,.45);
+  box-shadow:0 0 0 4px rgba(210,190,110,.2),0 0 0 9px rgba(210,190,110,.1);
+  pointer-events:none
+}
+
+/* Uranus */
+.o-uranus{width:1060px;height:1060px}
+.c-uranus{left:530px;margin-top:-20px;animation-duration:140s}
+.c-uranus .planet-inner{animation-duration:140s}
+.uranus{
+  width:40px;height:40px;
+  background:radial-gradient(circle at 40% 38%,#c0f0ff,#60c8e0 55%,#2090b0);
+  box-shadow:0 0 14px rgba(80,200,220,.3);
+  border-radius:50%
+}
+.uranus .planet-glow{background:#60c8e0}
+
+/* Neptune */
+.o-neptune{width:1240px;height:1240px}
+.c-neptune{left:620px;margin-top:-18px;animation-duration:200s}
+.c-neptune .planet-inner{animation-duration:200s}
+.neptune{
+  width:36px;height:36px;
+  background:radial-gradient(circle at 38% 35%,#8888ff,#3344cc 55%,#112288);
+  box-shadow:0 0 14px rgba(80,80,255,.35);
+  border-radius:50%
+}
+.neptune .planet-glow{background:#4455cc}
+
+/* COMET */
+.comet{
+  position:fixed;top:15%;left:-200px;
+  width:6px;height:6px;border-radius:50%;
+  background:white;
+  box-shadow:0 0 10px white,0 0 20px #aaddff,-120px 0 30px rgba(180,220,255,.5);
+  animation:cometFly 14s 2s linear infinite;
+  z-index:3;
+}
+.comet2{
+  position:fixed;top:70%;left:-200px;
+  width:4px;height:4px;border-radius:50%;
+  background:#aaddff;
+  box-shadow:0 0 8px #aaddff,-80px 0 20px rgba(100,180,255,.4);
+  animation:cometFly 18s 8s linear infinite;
+  z-index:3;
+}
+@keyframes cometFly{0%{transform:translate(0,0);opacity:0}5%{opacity:1}85%{opacity:.8}100%{transform:translate(130vw,30vh);opacity:0}}
+
+/* HUD ELEMENTS */
+.hud{position:fixed;inset:0;z-index:50;pointer-events:none}
+.hud-corner{position:absolute;width:60px;height:60px;opacity:.35}
+.hud-tl{top:20px;left:20px;border-top:1px solid var(--cyan);border-left:1px solid var(--cyan)}
+.hud-tr{top:20px;right:20px;border-top:1px solid var(--cyan);border-right:1px solid var(--cyan)}
+.hud-bl{bottom:20px;left:20px;border-bottom:1px solid var(--cyan);border-left:1px solid var(--cyan)}
+.hud-br{bottom:20px;right:20px;border-bottom:1px solid var(--cyan);border-right:1px solid var(--cyan)}
+.hud-line-h{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(0,229,255,.12),transparent);width:100%}
+.hud-line-h.top{top:80px}.hud-line-h.bot{bottom:80px}
+.hud-crosshair{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:200px;height:200px;border-radius:50%;
+  border:1px solid rgba(0,229,255,.05);
+  animation:cSpin 30s linear infinite
+}
+.hud-crosshair::before,.hud-crosshair::after{content:'';position:absolute;background:rgba(0,229,255,.07)}
+.hud-crosshair::before{width:1px;height:100%;left:50%;top:0}
+.hud-crosshair::after{width:100%;height:1px;top:50%;left:0}
+@keyframes cSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+/* HUD side labels */
+.hud-label{
+  position:absolute;font-family:'Orbitron',monospace;
+  font-size:.55rem;letter-spacing:3px;color:rgba(0,229,255,.25);
+  text-transform:uppercase
+}
+.hud-label.left{left:28px;top:50%;transform:translateY(-50%) rotate(-90deg);transform-origin:center}
+.hud-label.right{right:28px;top:50%;transform:translateY(-50%) rotate(90deg);transform-origin:center}
+
+/* MAIN CONTENT */
+#content{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+
+.tag{
+  font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:5px;
+  color:var(--cyan);text-transform:uppercase;
+  border:1px solid rgba(0,229,255,.22);
+  padding:6px 20px;border-radius:100px;
+  background:rgba(0,229,255,.04);
+  animation:tagIn 1.2s 0.2s both;
+  margin-bottom:24px
+}
+@keyframes tagIn{from{opacity:0;letter-spacing:12px}to{opacity:1;letter-spacing:5px}}
+
+.main-title{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(3.5rem,9vw,8rem);
+  font-weight:900;
+  line-height:.9;
+  text-align:center;
+  animation:titleIn 1.4s .5s cubic-bezier(.22,1,.36,1) both
+}
+.main-title .l1{
+  display:block;
+  background:linear-gradient(135deg,#ffffff 0%,#b0e0ff 40%,#00e5ff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 50px rgba(0,200,255,.7));
+  letter-spacing:-2px
+}
+.main-title .l2{
+  display:block;font-size:.38em;font-weight:400;
+  background:linear-gradient(135deg,#ffd060 0%,#ff8800 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 25px rgba(255,180,0,.6));
+  letter-spacing:10px;margin-top:10px
+}
+@keyframes titleIn{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
+
+.subtitle{
+  font-size:clamp(.75rem,1.4vw,.95rem);font-weight:300;
+  letter-spacing:4px;color:rgba(255,255,255,.4);
+  text-transform:uppercase;margin-top:18px;text-align:center;
+  animation:fadeUp 1s 1s both
+}
+
+.divider{
+  display:flex;align-items:center;gap:12px;margin:26px auto;
+  animation:fadeUp 1s 1.2s both
+}
+.divider-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(0,229,255,.5))}
+.divider-line:last-child{transform:scaleX(-1)}
+.divider-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+
+.crew-title{
+  font-family:'Orbitron',monospace;font-size:.55rem;
+  letter-spacing:5px;color:rgba(0,229,255,.45);
+  text-transform:uppercase;text-align:center;
+  animation:fadeUp 1s 1.4s both;margin-bottom:12px
+}
+.crew{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+  animation:fadeUp 1s 1.6s both
+}
+.crew-card{
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:10px 16px;
+  text-align:center;min-width:130px;
+  transition:all .3s;pointer-events:all;cursor:default;
+  position:relative;overflow:hidden
+}
+.crew-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(0,229,255,.06),transparent);
+  opacity:0;transition:.3s
+}
+.crew-card:hover{border-color:rgba(0,229,255,.4);transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,.5),var(--glow-cyan)}
+.crew-card:hover::before{opacity:1}
+.crew-name{font-size:.8rem;font-weight:600;letter-spacing:.5px}
+.crew-role{font-size:.6rem;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;opacity:.65;margin-top:3px}
+.crew-role.gold{color:var(--gold);opacity:.9}
+.crew-role.red{color:var(--red);opacity:.8}
+.crew-star{font-size:.65rem;color:var(--gold);display:block;margin-bottom:2px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* PLANET TOOLTIP */
+#tooltip{
+  position:fixed;z-index:200;
+  background:rgba(0,8,24,.92);
+  border:1px solid rgba(0,229,255,.3);
+  border-radius:10px;padding:10px 16px;
+  pointer-events:none;
+  opacity:0;transition:opacity .2s;
+  backdrop-filter:blur(12px);
+  min-width:130px
+}
+.tip-name{font-family:'Orbitron',monospace;color:var(--cyan);font-size:.78rem;margin-bottom:5px}
+.tip-info{color:rgba(255,255,255,.5);font-size:.65rem;letter-spacing:.5px}
+
+/* BOTTOM BAR */
+.bottom-bar{
+  position:fixed;bottom:22px;left:0;right:0;z-index:80;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;pointer-events:none;
+  animation:fadeUp 1s 2.2s both
+}
+.ver{font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:3px;color:rgba(0,229,255,.3)}
+.date-str{font-size:.62rem;letter-spacing:2px;color:rgba(255,255,255,.22)}
+.dot-sep{color:rgba(255,255,255,.15);margin:0 8px}
+
+/* PARTICLE BURST */
+.burst-p{position:fixed;pointer-events:none;z-index:150;width:3px;height:3px;border-radius:50%;animation:burstAnim .8s forwards}
+@keyframes burstAnim{to{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}}
+
+/* HOVER HINT */
+.hint{
+  position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
+  font-size:.58rem;letter-spacing:3px;color:rgba(255,255,255,.18);
+  text-transform:uppercase;z-index:80;white-space:nowrap;
+  animation:fadeUp 1s 2.8s both, hintPulse 2.5s 3.5s ease-in-out infinite
+}
+@keyframes hintPulse{0%,100%{opacity:.18}50%{opacity:.45}}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="nebula"></div>
+<div class="scanlines"></div>
+
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+
+<div class="comet"></div>
+<div class="comet2"></div>
+
+<!-- Solar System -->
+<div id="solar">
+  <div class="sun-wrap">
+    <div class="sun-corona"></div>
+    <div class="sun" data-name="Sol" data-info="Estrella tipo G2V · 1.392.700 km"></div>
+  </div>
+
+  <div class="orbit o-mercury"></div>
+  <div class="p-carrier c-mercury" style="left:80px;top:50%">
+    <div class="planet-inner">
+      <div class="planet mercury" data-name="Mercurio" data-info="Órbita: 88 días · Ø 4.880 km">
+        <div class="planet-glow" style="background:#aaa"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orbit o-venus"></div>
+  <div class="p-carrier c-venus" style="left:120px;top:50%">
+    <div class="planet-inner">
+      <div class="planet venus" data-name="Venus" data-info="Órbita: 225 días · Ø 12.104 km">
+        <div class="planet-glow" style="background:#e0b840"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orbit o-earth"></div>
+  <div class="p-carrier c-earth" style="left:170px;top:50%">
+    <div class="planet-inner">
+      <div class="planet earth" data-name="Tierra" data-info="Órbita: 365 días · Ø 12.742 km">
+        <div class="planet-glow" style="background:#4488ff"></div>
+        <div class="moon-orbit"><div class="moon"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orbit o-mars"></div>
+  <div class="p-carrier c-mars" style="left:225px;top:50%">
+    <div class="planet-inner">
+      <div class="planet mars" data-name="Marte" data-info="Órbita: 687 días · Ø 6.779 km">
+        <div class="planet-glow" style="background:#cc3311"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="asteroid-belt"></div>
+
+  <div class="orbit o-jupiter"></div>
+  <div class="p-carrier c-jupiter" style="left:340px;top:50%">
+    <div class="planet-inner">
+      <div class="planet jupiter" data-name="Júpiter" data-info="Órbita: 11.8 años · Ø 139.820 km">
+        <div class="planet-glow" style="background:#c89060;inset:-30%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orbit o-saturn"></div>
+  <div class="p-carrier c-saturn" style="left:440px;top:50%">
+    <div class="planet-inner">
+      <div class="planet saturn-wrap" data-name="Saturno" data-info="Órbita: 29.5 años · Ø 116.460 km">
+        <div class="saturn"></div>
+        <div class="saturn-rings"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orbit o-uranus"></div>
+  <div class="p-carrier c-uranus" style="left:530px;top:50%">
+    <div class="planet-inner">
+      <div class="planet uranus" data-name="Urano" data-info="Órbita: 84 años · Ø 50.724 km">
+        <div class="planet-glow" style="background:#60c8e0"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orbit o-neptune"></div>
+  <div class="p-carrier c-neptune" style="left:620px;top:50%">
+    <div class="planet-inner">
+      <div class="planet neptune" data-name="Neptuno" data-info="Órbita: 165 años · Ø 49.244 km">
+        <div class="planet-glow" style="background:#4455cc"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-corner hud-tl"></div>
+  <div class="hud-corner hud-tr"></div>
+  <div class="hud-corner hud-bl"></div>
+  <div class="hud-corner hud-br"></div>
+  <div class="hud-line-h top"></div>
+  <div class="hud-line-h bot"></div>
+  <div class="hud-crosshair"></div>
+  <div class="hud-label left">SISTEMA SOLAR — VÍA LÁCTEA</div>
+  <div class="hud-label right">INGENIERÍA DE SOFTWARE 2026</div>
+</div>
+
+<!-- Content -->
+<div id="content">
+  <div class="tag">⬡ Administración de Configuración · 2026</div>
+  <h1 class="main-title">
+    <span class="l1">COSMOS</span>
+    <span class="l2">Sistema Solar</span>
+  </h1>
+  <p class="subtitle">Ingeniería de Software · Grupo 2 · <span style="color:var(--gold);opacity:1;text-shadow:0 0 12px #ffd060">✦ Christopher el más crack ✦</span></p>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-dot"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <p class="crew-title">▸ Tripulación del Proyecto</p>
+  <div class="crew">
+    <div class="crew-card">
+      <div class="crew-name">Jose Manuel C.</div>
+      <div class="crew-role">Admin. Config.</div>
+    </div>
+    <div class="crew-card">
+      <div class="crew-name">Jose Fernando C.</div>
+      <div class="crew-role red">Auditor</div>
+    </div>
+    <div class="crew-card" style="border-color:rgba(255,208,96,.5);box-shadow:0 0 20px rgba(255,208,96,.2),0 0 40px rgba(255,208,96,.08);background:rgba(255,208,96,.06)">
+      <span class="crew-star" style="font-size:.9rem">👑</span>
+      <div class="crew-name" style="color:var(--gold);text-shadow:0 0 10px #ffd060">Christopher Fernández B.</div>
+      <div class="crew-role gold">EL MÁS CRACK</div>
+    </div>
+    <div class="crew-card">
+      <div class="crew-name">Joseph Gray</div>
+      <div class="crew-role">Desarrollador</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip">
+  <div class="tip-name" id="tipName"></div>
+  <div class="tip-info" id="tipInfo"></div>
+</div>
+
+<!-- Bottom bar -->
+<div class="bottom-bar">
+  <span class="ver">LÍNEA BASE 1 — v1.0</span>
+  <span class="date-str">19<span class="dot-sep">·</span>FEB<span class="dot-sep">·</span>2026</span>
+</div>
+
+<div class="hint">◈ Explora los planetas con el cursor</div>
+
+<script>
+// ── CURSOR ──
+const cur=document.getElementById('cursor');
+const curT=document.getElementById('cursor-trail');
+let mx=innerWidth/2,my=innerHeight/2,tx=mx,ty=my;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cur.style.left=(mx-6)+'px';cur.style.top=(my-6)+'px';
+});
+(function ac(){
+  tx+=(mx-tx)*.1;ty+=(my-ty)*.1;
+  curT.style.left=(tx-2)+'px';curT.style.top=(ty-2)+'px';
+  requestAnimationFrame(ac);
+})();
+
+// ── STARFIELD ──
+const cv=document.getElementById('starfield');
+const c2=cv.getContext('2d');
+let stars=[];
+function resize(){cv.width=innerWidth;cv.height=innerHeight;}
+function mkStars(){
+  stars=[];
+  const n=Math.min(500,Math.floor(innerWidth*innerHeight/3500));
+  for(let i=0;i<n;i++) stars.push({
+    x:Math.random()*cv.width,y:Math.random()*cv.height,
+    r:Math.random()*1.4+.15,a:Math.random(),
+    da:(Math.random()-.5)*.011,sp:Math.random()*.06+.01,
+    col:Math.random()<.08?`hsl(${180+Math.random()*40},80%,90%)`:'rgba(220,235,255,1)'
+  });
+}
+function draw(){
+  c2.clearRect(0,0,cv.width,cv.height);
+  stars.forEach(s=>{
+    s.a+=s.da;if(s.a<=0||s.a>=1)s.da*=-1;
+    s.y+=s.sp;if(s.y>cv.height){s.y=0;s.x=Math.random()*cv.width;}
+    c2.globalAlpha=s.a;
+    c2.fillStyle=s.col;
+    c2.beginPath();c2.arc(s.x,s.y,s.r,0,Math.PI*2);c2.fill();
+  });
+  c2.globalAlpha=1;
+  requestAnimationFrame(draw);
+}
+resize();mkStars();draw();
+window.addEventListener('resize',()=>{resize();mkStars();});
+
+// ── TOOLTIP ──
+const tip=document.getElementById('tooltip');
+const tipN=document.getElementById('tipName');
+const tipI=document.getElementById('tipInfo');
+
+document.querySelectorAll('[data-name]').forEach(el=>{
+  el.style.pointerEvents='all';
+  el.addEventListener('mouseenter',e=>{
+    const t=e.currentTarget;
+    tipN.textContent=t.dataset.name;
+    tipI.textContent=t.dataset.info;
+    tip.style.opacity='1';
+    spawnBurst(e.clientX,e.clientY,'#00e5ff');
+  });
+  el.addEventListener('mousemove',e=>{
+    tip.style.left=(e.clientX+18)+'px';
+    tip.style.top=(e.clientY-12)+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tip.style.opacity='0';});
+});
+
+// ── PARTICLE BURST ──
+function spawnBurst(x,y,col='#00e5ff'){
+  for(let i=0;i<12;i++){
+    const p=document.createElement('div');
+    p.className='burst-p';
+    const ang=Math.random()*Math.PI*2;
+    const d=25+Math.random()*55;
+    const c=Math.random()>.5?col:'#ffd060';
+    p.style.cssText=`left:${x}px;top:${y}px;--tx:${Math.cos(ang)*d}px;--ty:${Math.sin(ang)*d}px;background:${c};box-shadow:0 0 6px ${c}`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),900);
+  }
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[data-name]')) spawnBurst(e.clientX,e.clientY);
+});
+
+// ── PARALLAX ──
+const solar=document.getElementById('solar');
+document.addEventListener('mousemove',e=>{
+  const dx=(e.clientX/innerWidth-.5)*20;
+  const dy=(e.clientY/innerHeight-.5)*12;
+  solar.style.transform=`translate(${dx}px,${dy}px)`;
+});
+</script>
+</body>
+</html>
